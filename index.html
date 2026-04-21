@@ -687,27 +687,38 @@ function friendlyError(msg) {
 }
 
 // ─── Auth state listener ──────────────────────────────────
-let _sessionLoaded = false;
+function showApp(user) {
+  currentUser = user;
+  document.getElementById('userEmail').textContent = user.email;
+  document.getElementById('authScreen').style.display = 'none';
+  document.getElementById('appScreen').classList.add('visible');
+}
+function showAuth() {
+  currentUser = null;
+  document.getElementById('authScreen').style.display = 'flex';
+  document.getElementById('appScreen').classList.remove('visible');
+  tasks = [];
+  renderAll();
+}
+
 sb.auth.onAuthStateChange(async (event, session) => {
-  if (session?.user) {
-    currentUser = session.user;
-    document.getElementById('userEmail').textContent = currentUser.email;
-    document.getElementById('authScreen').style.display = 'none';
-    document.getElementById('appScreen').classList.add('visible');
-    // Only load tasks on first session or explicit sign-in, not on silent token refresh
-    if (!_sessionLoaded || event === 'SIGNED_IN' || event === 'SIGNED_UP') {
-      _sessionLoaded = true;
+  if (event === 'INITIAL_SESSION') {
+    // Fired once at page load with the restored session (or null)
+    if (session?.user) {
+      showApp(session.user);
       await loadTasks();
       await migrateLocalStorage();
+    } else {
+      showAuth();
     }
-  } else {
-    _sessionLoaded = false;
-    currentUser = null;
-    document.getElementById('authScreen').style.display = 'flex';
-    document.getElementById('appScreen').classList.remove('visible');
-    tasks = [];
-    renderAll();
+  } else if (event === 'SIGNED_IN' || event === 'SIGNED_UP') {
+    showApp(session.user);
+    await loadTasks();
+    await migrateLocalStorage();
+  } else if (event === 'SIGNED_OUT') {
+    showAuth();
   }
+  // TOKEN_REFRESHED, USER_UPDATED, PASSWORD_RECOVERY → ignored intentionally
 });
 
 // ═══════════════════════════════════════════════════════════
