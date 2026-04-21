@@ -686,7 +686,7 @@ function friendlyError(msg) {
   return msg;
 }
 
-// ─── Auth state listener ──────────────────────────────────
+// ─── Auth helpers ─────────────────────────────────────────
 function showApp(user) {
   currentUser = user;
   document.getElementById('userEmail').textContent = user.email;
@@ -701,24 +701,34 @@ function showAuth() {
   renderAll();
 }
 
+// ─── Session init au chargement ───────────────────────────
+// getSession() attend que le client soit prêt avant de retourner la session,
+// contrairement à INITIAL_SESSION qui peut s'émettre trop tôt pour les requêtes REST.
+let _loadingTasks = false;
+async function startApp(user) {
+  showApp(user);
+  if (_loadingTasks) return;
+  _loadingTasks = true;
+  await loadTasks();
+  await migrateLocalStorage();
+  _loadingTasks = false;
+}
+
+sb.auth.getSession().then(({ data: { session } }) => {
+  if (session?.user) startApp(session.user);
+  else showAuth();
+});
+
+// ─── Changements d'auth ultérieurs ────────────────────────
 sb.auth.onAuthStateChange(async (event, session) => {
-  if (event === 'INITIAL_SESSION') {
-    // Fired once at page load with the restored session (or null)
-    if (session?.user) {
-      showApp(session.user);
-      await loadTasks();
-      await migrateLocalStorage();
-    } else {
-      showAuth();
-    }
-  } else if (event === 'SIGNED_IN' || event === 'SIGNED_UP') {
-    showApp(session.user);
-    await loadTasks();
-    await migrateLocalStorage();
+  if (event === 'SIGNED_IN' && session?.user) {
+    _loadingTasks = false; // reset pour forcer un rechargement
+    startApp(session.user);
   } else if (event === 'SIGNED_OUT') {
+    _loadingTasks = false;
     showAuth();
   }
-  // TOKEN_REFRESHED, USER_UPDATED, PASSWORD_RECOVERY → ignored intentionally
+  // INITIAL_SESSION, TOKEN_REFRESHED → ignorés (getSession() gère le démarrage)
 });
 
 // ═══════════════════════════════════════════════════════════
