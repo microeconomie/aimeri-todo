@@ -661,10 +661,9 @@ async function doSignup() {
   if (!email || !pwd) { showAuthError('Remplis les deux champs.'); return; }
   if (pwd.length < 8) { showAuthError('Le mot de passe doit faire au moins 8 caractères.'); return; }
   setAuthLoading('signupBtn', true);
-  const { error } = await sb.auth.signUp({ email, password: pwd, options: { emailRedirectTo: 'https://kinkyside.github.io/aimeri-todo/' } });
+  const { error } = await sb.auth.signUp({ email, password: pwd });
   setAuthLoading('signupBtn', false);
   if (error) showAuthError(friendlyError(error.message));
-  else showAuthSuccess('✅ Compte créé ! Vérifie ta boîte mail pour confirmer ton adresse, puis connecte-toi.');
 }
 
 async function doMagicLink() {
@@ -681,7 +680,7 @@ async function doLogout() {
 
 function friendlyError(msg) {
   if (msg.includes('Invalid login'))      return 'Email ou mot de passe incorrect.';
-  if (msg.includes('Email not confirmed')) return 'Confirme d\'abord ton email (vérifie ta boîte mail).';
+  if (msg.includes('Email not confirmed')) return 'Email ou mot de passe incorrect.';
   if (msg.includes('already registered')) return 'Ce compte existe déjà. Connecte-toi !';
   if (msg.includes('Password'))           return 'Mot de passe trop court (8 caractères minimum).';
   return msg;
