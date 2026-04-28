@@ -669,7 +669,7 @@ async function doSignup() {
 async function doMagicLink() {
   const email = document.getElementById('loginEmail').value.trim();
   if (!email) { showAuthError('Entre ton email d\'abord.'); return; }
-  const { error } = await sb.auth.signInWithOtp({ email, options: { emailRedirectTo: 'https://kinkyside.github.io/aimeri-todo/' } });
+  const { error } = await sb.auth.signInWithOtp({ email, options: { emailRedirectTo: 'https://microeconomie.github.io/aimeri-todo/' } });
   if (error) showAuthError(friendlyError(error.message));
   else showAuthSuccess('✉️ Lien magique envoyé ! Vérifie ta boîte mail.');
 }
