@@ -270,6 +270,10 @@
   .res-remove { width: 24px; height: 24px; border-radius: 7px; border: none; background: rgba(0,0,0,0.10); color: var(--text-muted); cursor: pointer; font-size: 12px; flex-shrink: 0; transition: background 0.15s, color 0.15s; }
   [data-theme="dark"] .res-remove { background: rgba(255,255,255,0.06); }
   .res-remove:hover { background: rgba(255,107,122,0.18); color: var(--danger); }
+  .res-download { width: 24px; height: 24px; border-radius: 7px; border: none; background: rgba(0,0,0,0.10); color: var(--text-muted); cursor: pointer; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; transition: background 0.15s, color 0.15s; }
+  [data-theme="dark"] .res-download { background: rgba(255,255,255,0.06); }
+  .res-download:hover { background: rgba(201,184,255,0.18); color: var(--accent); }
+  .res-actions-btns { display: flex; gap: 6px; align-items: center; flex-shrink: 0; }
 
   /* ── MODAL ACTIONS + SAVE STATUS ─────────────────────────── */
   .modal-actions { display: flex; gap: 10px; margin-top: 24px; align-items: center; justify-content: flex-end; }
@@ -1168,7 +1172,12 @@ function buildFileItem(r) {
       <div class="res-title">${esc(r.name)}</div>
       <div class="res-sub">${formatSize(r.size)}</div>
     </div>
-    <button class="res-remove" title="Retirer" onclick="removeResource(event,'${r.id}')">✕</button>`;
+    <div class="res-actions-btns">
+      <button class="res-download" title="Télécharger" onclick="downloadResource(event,'${r.id}')">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      </button>
+      <button class="res-remove" title="Retirer" onclick="removeResource(event,'${r.id}')">✕</button>
+    </div>`;
   return div;
 }
 function fileEmoji(mime) {
@@ -1186,6 +1195,28 @@ function formatSize(bytes) {
   if (bytes < 1024)        return bytes + ' o';
   if (bytes < 1024*1024)   return (bytes/1024).toFixed(0) + ' Ko';
   return (bytes/(1024*1024)).toFixed(1) + ' Mo';
+}
+async function downloadResource(evt, id) {
+  evt.preventDefault(); evt.stopPropagation();
+  const r = modalResources.find(x => x.id === id);
+  if (!r) return;
+  try {
+    let blob;
+    if (r.storagePath) {
+      const { data, error } = await sb.storage.from(BUCKET).download(r.storagePath);
+      if (error) throw error;
+      blob = data;
+    } else if (r.storageUrl) {
+      blob = await (await fetch(r.storageUrl)).blob();
+    } else return;
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = r.name || 'fichier';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1500);
+  } catch(e) {
+    showToast('Téléchargement impossible : ' + (e.message || e));
+  }
 }
 async function removeResource(evt, id) {
   evt.preventDefault(); evt.stopPropagation();
