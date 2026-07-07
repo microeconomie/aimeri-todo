@@ -715,7 +715,13 @@ async function loadTasks() {
 
 async function insertTask(task) {
   setSyncDot('syncing');
-  const { data, error } = await sb.from('tasks').insert([localToDb(task)]).select().single();
+  const payload = localToDb(task);
+  let { data, error } = await sb.from('tasks').insert([payload]).select().single();
+  // Graceful degradation: retry without resources if column not yet migrated
+  if (error && error.message && error.message.includes('resources')) {
+    const { resources: _r, ...fallback } = payload;
+    ({ data, error } = await sb.from('tasks').insert([fallback]).select().single());
+  }
   if (error) { setSyncDot('error'); showToast('Erreur : ' + error.message); return null; }
   setSyncDot('ok');
   return dbToLocal(data);
@@ -723,7 +729,13 @@ async function insertTask(task) {
 
 async function updateTaskDb(task) {
   setSyncDot('syncing');
-  const { error } = await sb.from('tasks').update(localToDbUpdate(task)).eq('id', task.id);
+  const payload = localToDbUpdate(task);
+  let { error } = await sb.from('tasks').update(payload).eq('id', task.id);
+  // Graceful degradation: retry without resources if column not yet migrated
+  if (error && error.message && error.message.includes('resources')) {
+    const { resources: _r, ...fallback } = payload;
+    ({ error } = await sb.from('tasks').update(fallback).eq('id', task.id));
+  }
   if (error) { setSyncDot('error'); showToast('Erreur : ' + error.message); return false; }
   setSyncDot('ok'); return true;
 }
