@@ -1290,6 +1290,7 @@ function openEditModal(id) {
   document.getElementById('mTitle').value    = task.title || '';
   document.getElementById('mBody').innerHTML = task.body  || '';
   document.getElementById('modalSaveBtn').textContent = 'Fermer';
+  document.getElementById('modalSaveBtn').disabled = false;
   document.getElementById('cancelBtn').style.display  = 'none';
   const pair  = (task.color && typeof task.color === 'object') ? task.color : randomColor();
   const modal = document.getElementById('modal');
