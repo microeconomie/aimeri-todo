@@ -319,6 +319,16 @@
   ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
   .footer-info { text-align: center; padding: 14px; color: var(--text-muted); font-size: 0.72rem; letter-spacing: 0.04em; }
+
+  /* ── PURGE NOTICE (onglet Terminé) ───────────────────────── */
+  .purge-notice {
+    display: none; align-items: center; gap: 9px;
+    font-size: 0.74rem; color: var(--text-muted); line-height: 1.45;
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 10px; padding: 9px 13px; margin-bottom: 16px;
+  }
+  .purge-notice.show { display: flex; }
+  .purge-notice svg { flex-shrink: 0; opacity: 0.6; }
 </style>
 </head>
 <body>
@@ -433,6 +443,10 @@
       <div class="grid" id="grid-pending"><div class="loading-state"><div class="spinner"></div><span>Chargement…</span></div></div>
     </div>
     <div class="tab-panel" id="panel-done">
+      <div class="purge-notice" id="purgeNotice">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+        <span>Les tâches ainsi que les pièces jointes qui leur sont associées sont définitivement supprimées 30 jours après avoir été marquées comme terminées.</span>
+      </div>
       <div class="grid" id="grid-done"></div>
     </div>
   </div>
@@ -675,7 +689,26 @@ async function startApp(user) {
   _loadingTasks = true;
   await loadTasks();
   await migrateLocalStorage();
+  await purgeExpiredDoneTasks();
   _loadingTasks = false;
+}
+
+// Purge automatique : une tâche terminée depuis plus de 30 jours est
+// définitivement supprimée (la tâche ET ses pièces jointes dans le Storage).
+const PURGE_DAYS = 30;
+async function purgeExpiredDoneTasks() {
+  const cutoff  = Date.now() - PURGE_DAYS * 86400 * 1000;
+  const expired = tasks.filter(t => t.done && t.doneAt && t.doneAt < cutoff);
+  if (!expired.length) return;
+  for (const t of expired) {
+    await deleteStorageFiles(t.resources);
+    await deleteTaskDb(t.id);
+  }
+  const ids = new Set(expired.map(t => t.id));
+  tasks = tasks.filter(t => !ids.has(t.id));
+  renderAll();
+  const c = expired.length;
+  showToast(`${c} tâche${c>1?'s':''} terminée${c>1?'s':''} depuis plus de 30 jours ${c>1?'ont':'a'} été purgée${c>1?'s':''}.`, 'info');
 }
 
 sb.auth.getSession().then(({ data: { session } }) => {
@@ -894,6 +927,7 @@ function renderAll() {
   document.getElementById('badge-done').textContent    = done.length;
   const n = pending.length;
   document.getElementById('footer-info').textContent = n > 0 ? `${n} tâche${n>1?'s':''} en attente · max 30` : '';
+  document.getElementById('purgeNotice').classList.toggle('show', done.length > 0);
 }
 
 function renderGrid(gridId, list, isDone) {
