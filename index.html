@@ -532,7 +532,6 @@
     <div class="res-list" id="resList"></div>
 
     <div class="modal-actions">
-      <span class="save-status" id="saveStatus2"></span>
       <div class="modal-actions-btns">
         <button class="btn-cancel" id="cancelBtn" onclick="cancelNewTask()">Annuler</button>
         <button class="btn-create" id="modalSaveBtn" onclick="saveModal()">Créer ✦</button>
@@ -1211,21 +1210,19 @@ async function handleFiles(fileList) {
 // AUTO-SAVE (edit mode only, 700ms debounce)
 // ═══════════════════════════════════════════════════════════
 function setSaveStatus(state) {
-  ['saveStatus','saveStatus2'].forEach(id => {
-    const el = document.getElementById(id);
-    if (!el) return;
-    if (state === 'saving') {
-      el.className = 'save-status saving';
-      el.innerHTML = '<span class="save-spin"></span> Enregistrement…';
-    } else if (state === 'saved') {
-      const t = new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
-      el.className = 'save-status saved'; el.textContent = `✓ Enregistré à ${t}`;
-    } else if (state === 'error') {
-      el.className = 'save-status'; el.textContent = '✕ Erreur de sauvegarde';
-    } else {
-      el.className = 'save-status'; el.textContent = '';
-    }
-  });
+  const el = document.getElementById('saveStatus');
+  if (!el) return;
+  if (state === 'saving') {
+    el.className = 'save-status saving';
+    el.innerHTML = '<span class="save-spin"></span> Enregistrement…';
+  } else if (state === 'saved') {
+    const t = new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+    el.className = 'save-status saved'; el.textContent = `✓ Enregistré à ${t}`;
+  } else if (state === 'error') {
+    el.className = 'save-status'; el.textContent = '✕ Erreur de sauvegarde';
+  } else {
+    el.className = 'save-status'; el.textContent = '';
+  }
 }
 function scheduleAutosave() {
   if (modalMode !== 'edit' || !editingId) return;
